@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Chronos Grid - Secure Arcade MVP</title>
-    <!-- Tailwind CSS via CDN segura -->
+    <title>Chronos Grid - 100 Fases & VIP</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4" crossorigin="anonymous"></script>
     <style>
         body { background-color: #09090b; color: #f4f4f5; touch-action: none; font-family: monospace; overflow: hidden; }
@@ -12,11 +11,11 @@
 </head>
 <body class="flex flex-col items-center justify-between h-dvh w-screen select-none p-3 box-border">
 
-    <!-- Topo: Placar e Status -->
+    <!-- Topo: Fase, Pontos e Recorde -->
     <header class="w-full max-w-md flex justify-between items-center bg-zinc-900/80 border border-zinc-800 p-2.5 rounded-xl backdrop-blur-md shrink-0">
         <div>
-            <p class="text-[10px] text-zinc-400">PONTOS</p>
-            <h1 id="score" class="text-xl font-bold text-purple-400">0</h1>
+            <p class="text-[10px] text-zinc-400">FASE</p>
+            <h1 id="level-display" class="text-xl font-bold text-amber-400">1/100</h1>
         </div>
         <div id="overload-badge" class="hidden px-2 py-0.5 bg-red-950/80 border border-red-600 rounded-lg text-red-400 text-[10px] font-bold animate-pulse">
             🔥 SOBRECARGA
@@ -31,13 +30,32 @@
     <main class="relative flex items-center justify-center w-full max-w-md flex-1 my-2 min-h-0">
         <canvas id="gameCanvas" class="bg-zinc-950 border-2 border-zinc-800 rounded-2xl w-full h-full max-h-[420px] shadow-2xl object-contain"></canvas>
         
-        <!-- Tela de Menu / Game Over -->
-        <div id="menu-overlay" class="absolute inset-0 bg-zinc-950/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center rounded-2xl">
-            <h2 class="text-2xl font-black text-purple-400 mb-2 tracking-wider">CHRONOS GRID</h2>
-            <p class="text-xs text-zinc-400 mb-6">Desvie dos blocos instáveis. Sobreviva ao tempo.</p>
+        <!-- Tela de Menu / Início -->
+        <div id="menu-overlay" class="absolute inset-0 bg-zinc-950/95 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center rounded-2xl">
+            <h2 class="text-2xl font-black text-purple-400 mb-1 tracking-wider">CHRONOS GRID</h2>
+            <p id="menu-desc" class="text-xs text-zinc-400 mb-6">Domine as 100 fases do tempo.</p>
             
-            <button id="start-btn" class="w-full py-3.5 bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-bold rounded-xl shadow-lg transition transform">
+            <button id="start-btn" class="w-full py-3.5 bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-bold rounded-xl shadow-lg transition transform mb-3">
                 INICIAR PARTIDA
+            </button>
+        </div>
+
+        <!-- Tela de Paywall / Monetização Mercado Pago (Fase 11+) -->
+        <div id="paywall-overlay" class="hidden absolute inset-0 bg-zinc-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center rounded-2xl border border-amber-500/30">
+            <span class="text-3xl mb-2">💎</span>
+            <h3 class="text-xl font-black text-amber-400 mb-1">DESBLOQUEIE AS 100 FASES</h3>
+            <p class="text-xs text-zinc-300 mb-4">Chegou à Fase 11! Adquira o Passe VIP Vitalício para desbloquear todas as 100 fases e recursos exclusivos.</p>
+            
+            <div class="bg-zinc-900 border border-zinc-800 p-3 rounded-xl w-full mb-4 text-left">
+                <p class="text-[11px] text-zinc-400 mb-1">Passe VIP (Acesso Total 100 Fases)</p>
+                <p class="text-[10px] text-zinc-500">Pagamento seguro via Mercado Pago (Pix, Cartão ou Boleto).</p>
+            </div>
+
+            <a id="mp-pay-btn" href="https://mpago.la/22WKaV4" target="_blank" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold rounded-xl shadow-lg transition transform mb-2 block text-center">
+                💳 DESBLOQUEAR AGORA NO MERCADO PAGO
+            </a>
+            <button id="back-menu-btn" class="w-full py-2 bg-zinc-800 text-zinc-400 font-bold rounded-xl text-xs">
+                Voltar ao Menu
             </button>
         </div>
     </main>
@@ -53,37 +71,26 @@
         </button>
     </footer>
 
-    <!-- Lógica de Jogo Segura -->
+    <!-- Lógica do Jogo com Progressão e Paywall Mercado Pago -->
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const scoreEl = document.getElementById('score');
+        const levelDisplay = document.getElementById('level-display');
         const highscoreEl = document.getElementById('highscore');
         const menuOverlay = document.getElementById('menu-overlay');
+        const paywallOverlay = document.getElementById('paywall-overlay');
         const startBtn = document.getElementById('start-btn');
         const shareBtn = document.getElementById('share-btn');
+        const backMenuBtn = document.getElementById('back-menu-btn');
         const overloadBadge = document.getElementById('overload-badge');
 
         canvas.width = 400;
         canvas.height = 600;
 
         let score = 0;
-        
-        // Função segura para ler/escrever localStorage com tratamento de exceções
-        function getSecureHighscore() {
-            try {
-                return parseInt(localStorage.getItem('chronos_highscore')) || 0;
-            } catch (e) {
-                return 0;
-            }
-        }
-        function setSecureHighscore(val) {
-            try {
-                localStorage.setItem('chronos_highscore', val);
-            } catch (e) {}
-        }
-
-        let highscore = getSecureHighscore();
+        let currentLevel = 1;
+        let isVip = localStorage.getItem('chronos_vip') === 'true';
+        let highscore = parseInt(localStorage.getItem('chronos_highscore')) || 0;
         highscoreEl.innerText = highscore;
 
         let isPlaying = false;
@@ -92,7 +99,6 @@
         const lanes = [75, 200, 325];
         let obstacles = [];
         let gameSpeed = 4;
-        let isOverload = false;
 
         let audioCtx = null;
         function playSound(type) {
@@ -102,30 +108,19 @@
                 const gain = audioCtx.createGain();
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
-
                 if (type === 'move') {
                     osc.type = 'square';
                     osc.frequency.setValueAtTime(150, audioCtx.currentTime);
                     gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
-                    osc.start();
-                    osc.stop(audioCtx.currentTime + 0.05);
-                } else if (type === 'overload') {
-                    osc.type = 'sawtooth';
-                    osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.2);
-                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
-                    osc.start();
-                    osc.stop(audioCtx.currentTime + 0.3);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.05);
                 } else if (type === 'hit') {
                     osc.type = 'triangle';
                     osc.frequency.setValueAtTime(80, audioCtx.currentTime);
                     osc.frequency.linearRampToValueAtTime(20, audioCtx.currentTime + 0.3);
                     gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
-                    osc.start();
-                    osc.stop(audioCtx.currentTime + 0.3);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.3);
                 }
             } catch (e) {}
         }
@@ -146,47 +141,40 @@
             playSound('move');
         }
 
-        startBtn.addEventListener('click', startGame);
+        startBtn.addEventListener('click', () => {
+            // Trava na fase 11 para utilizadores não-VIP
+            if (!isVip && currentLevel > 10) {
+                menuOverlay.classList.add('hidden');
+                paywallOverlay.classList.remove('hidden');
+                return;
+            }
+            startGame();
+        });
+
+        backMenuBtn.addEventListener('click', () => {
+            paywallOverlay.classList.add('hidden');
+            menuOverlay.classList.remove('hidden');
+        });
 
         function startGame() {
-            score = 0;
-            scoreEl.innerText = score;
-            playerLane = 1;
-            obstacles = [];
-            gameSpeed = 4;
-            isOverload = false;
-            overloadBadge.classList.add('hidden');
             menuOverlay.classList.add('hidden');
+            paywallOverlay.classList.add('hidden');
             shareBtn.classList.add('hidden');
+            obstacles = [];
+            gameSpeed = 4 + (currentLevel * 0.1);
             isPlaying = true;
 
             clearInterval(gameInterval);
             clearInterval(spawnerInterval);
 
             gameInterval = setInterval(updateGame, 1000 / 60);
-            spawnerInterval = setInterval(spawnObstacle, 1200);
+            spawnerInterval = setInterval(spawnObstacle, Math.max(400, 1200 - (currentLevel * 8)));
         }
 
         function spawnObstacle() {
             if (!isPlaying) return;
             const lane = Math.floor(Math.random() * 3);
             obstacles.push({ lane: lane, y: -50, width: 90, height: 40 });
-
-            if (score > 0 && score % 10 === 0 && !isOverload) {
-                triggerOverload();
-            }
-        }
-
-        function triggerOverload() {
-            isOverload = true;
-            gameSpeed = 7;
-            overloadBadge.classList.remove('hidden');
-            playSound('overload');
-            setTimeout(() => {
-                isOverload = false;
-                gameSpeed = 4;
-                overloadBadge.classList.add('hidden');
-            }, 4000);
         }
 
         function updateGame() {
@@ -204,7 +192,7 @@
                 let obs = obstacles[i];
                 obs.y += gameSpeed;
 
-                ctx.fillStyle = isOverload ? '#ef4444' : '#a855f7';
+                ctx.fillStyle = currentLevel > 50 ? '#ef4444' : '#a855f7';
                 ctx.fillRect(lanes[obs.lane] - 45, obs.y, obs.width, obs.height);
 
                 if (obs.y > 450 && obs.y < 530 && obs.lane === playerLane) {
@@ -214,7 +202,8 @@
                 if (obs.y > canvas.height) {
                     obstacles.splice(i, 1);
                     score++;
-                    scoreEl.innerText = score;
+                    currentLevel = Math.min(100, Math.floor(score / 5) + 1);
+                    levelDisplay.innerText = currentLevel + "/100";
                 }
             }
 
@@ -230,19 +219,17 @@
 
             if (score > highscore) {
                 highscore = score;
-                setSecureHighscore(highscore);
+                localStorage.setItem('chronos_highscore', highscore);
                 highscoreEl.innerText = highscore;
             }
 
             menuOverlay.classList.remove('hidden');
-            startBtn.innerText = "JOGAR NOVAMENTE";
+            startBtn.innerText = (!isVip && currentLevel > 10) ? "DESBLOQUEAR VIP (Fase " + currentLevel + ")" : "JOGAR NOVAMENTE (Fase " + currentLevel + ")";
             shareBtn.classList.remove('hidden');
         }
 
         shareBtn.addEventListener('click', () => {
-            // Sanitização simples da pontuação antes de partilhar
-            const safeScore = parseInt(score) || 0;
-            const text = encodeURIComponent(`Consegui fazer ${safeScore} pontos no Chronos Grid! Consegue me superar? 🎮🔥`);
+            const text = encodeURIComponent(`Cheguei à Fase ${currentLevel} no Chronos Grid com ${score} pontos! Consegues superar? 🎮🔥`);
             window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
         });
     </script>
