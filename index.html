@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Chronos Grid - MVP Arcade</title>
-    <!-- Tailwind CSS via CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <title>Chronos Grid - Secure Arcade MVP</title>
+    <!-- Tailwind CSS via CDN segura -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4" crossorigin="anonymous"></script>
     <style>
         body { background-color: #09090b; color: #f4f4f5; touch-action: none; font-family: monospace; overflow: hidden; }
     </style>
@@ -27,14 +27,14 @@
         </div>
     </header>
 
-    <!-- Área do Jogo (Canvas Ajustado) -->
+    <!-- Área do Jogo (Canvas) -->
     <main class="relative flex items-center justify-center w-full max-w-md flex-1 my-2 min-h-0">
         <canvas id="gameCanvas" class="bg-zinc-950 border-2 border-zinc-800 rounded-2xl w-full h-full max-h-[420px] shadow-2xl object-contain"></canvas>
         
-        <!-- Tela de Início / Fim de Jogo -->
+        <!-- Tela de Menu / Game Over -->
         <div id="menu-overlay" class="absolute inset-0 bg-zinc-950/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center rounded-2xl">
             <h2 class="text-2xl font-black text-purple-400 mb-2 tracking-wider">CHRONOS GRID</h2>
-            <p class="text-xs text-zinc-400 mb-6">Desvie dos blocos instáveis. Colete os núcleos de tempo.</p>
+            <p class="text-xs text-zinc-400 mb-6">Desvie dos blocos instáveis. Sobreviva ao tempo.</p>
             
             <button id="start-btn" class="w-full py-3.5 bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-bold rounded-xl shadow-lg transition transform">
                 INICIAR PARTIDA
@@ -42,7 +42,7 @@
         </div>
     </main>
 
-    <!-- Controles Mobile & WhatsApp -->
+    <!-- Controles -->
     <footer class="w-full max-w-md flex flex-col gap-2 shrink-0 pb-1">
         <div class="grid grid-cols-2 gap-2">
             <button id="left-btn" class="py-3 bg-zinc-900 border border-zinc-800 active:bg-zinc-800 text-zinc-200 font-bold rounded-xl text-base shadow">◀ ESQUERDA</button>
@@ -53,7 +53,7 @@
         </button>
     </footer>
 
-    <!-- Script da Lógica do Jogo -->
+    <!-- Lógica de Jogo Segura -->
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -68,50 +68,66 @@
         canvas.height = 600;
 
         let score = 0;
-        let highscore = localStorage.getItem('chronos_highscore') || 0;
+        
+        // Função segura para ler/escrever localStorage com tratamento de exceções
+        function getSecureHighscore() {
+            try {
+                return parseInt(localStorage.getItem('chronos_highscore')) || 0;
+            } catch (e) {
+                return 0;
+            }
+        }
+        function setSecureHighscore(val) {
+            try {
+                localStorage.setItem('chronos_highscore', val);
+            } catch (e) {}
+        }
+
+        let highscore = getSecureHighscore();
         highscoreEl.innerText = highscore;
+
         let isPlaying = false;
         let gameInterval, spawnerInterval;
-
         let playerLane = 1;
         const lanes = [75, 200, 325];
-
         let obstacles = [];
         let gameSpeed = 4;
         let isOverload = false;
 
         let audioCtx = null;
         function playSound(type) {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
 
-            if (type === 'move') {
-                osc.type = 'square';
-                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.05);
-            } else if (type === 'overload') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.2);
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.3);
-            } else if (type === 'hit') {
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(80, audioCtx.currentTime);
-                osc.frequency.linearRampToValueAtTime(20, audioCtx.currentTime + 0.3);
-                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.3);
-            }
+                if (type === 'move') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.05);
+                } else if (type === 'overload') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.3);
+                } else if (type === 'hit') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(80, audioCtx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(20, audioCtx.currentTime + 0.3);
+                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.3);
+                }
+            } catch (e) {}
         }
 
         document.getElementById('left-btn').addEventListener('click', () => movePlayer(-1));
@@ -214,7 +230,7 @@
 
             if (score > highscore) {
                 highscore = score;
-                localStorage.setItem('chronos_highscore', highscore);
+                setSecureHighscore(highscore);
                 highscoreEl.innerText = highscore;
             }
 
@@ -224,7 +240,9 @@
         }
 
         shareBtn.addEventListener('click', () => {
-            const text = encodeURIComponent(`Consegui fazer ${score} pontos no Chronos Grid! Consegue me superar? 🎮🔥`);
+            // Sanitização simples da pontuação antes de partilhar
+            const safeScore = parseInt(score) || 0;
+            const text = encodeURIComponent(`Consegui fazer ${safeScore} pontos no Chronos Grid! Consegue me superar? 🎮🔥`);
             window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
         });
     </script>
