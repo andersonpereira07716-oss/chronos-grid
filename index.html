@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chronos Grid - MVP Arcade</title>
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        body { background-color: #09090b; color: #f4f4f5; touch-action: none; font-family: monospace; overflow: hidden; }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-between h-dvh w-screen select-none p-3 box-border">
+
+    <!-- Topo: Placar e Status -->
+    <header class="w-full max-w-md flex justify-between items-center bg-zinc-900/80 border border-zinc-800 p-2.5 rounded-xl backdrop-blur-md shrink-0">
+        <div>
+            <p class="text-[10px] text-zinc-400">PONTOS</p>
+            <h1 id="score" class="text-xl font-bold text-purple-400">0</h1>
+        </div>
+        <div id="overload-badge" class="hidden px-2 py-0.5 bg-red-950/80 border border-red-600 rounded-lg text-red-400 text-[10px] font-bold animate-pulse">
+            🔥 SOBRECARGA
+        </div>
+        <div class="text-right">
+            <p class="text-[10px] text-zinc-400">RECORD</p>
+            <h2 id="highscore" class="text-xl font-bold text-zinc-200">0</h2>
+        </div>
+    </header>
+
+    <!-- Área do Jogo (Canvas Ajustado) -->
+    <main class="relative flex items-center justify-center w-full max-w-md flex-1 my-2 min-h-0">
+        <canvas id="gameCanvas" class="bg-zinc-950 border-2 border-zinc-800 rounded-2xl w-full h-full max-h-[420px] shadow-2xl object-contain"></canvas>
+        
+        <!-- Tela de Início / Fim de Jogo -->
+        <div id="menu-overlay" class="absolute inset-0 bg-zinc-950/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center rounded-2xl">
+            <h2 class="text-2xl font-black text-purple-400 mb-2 tracking-wider">CHRONOS GRID</h2>
+            <p class="text-xs text-zinc-400 mb-6">Desvie dos blocos instáveis. Colete os núcleos de tempo.</p>
+            
+            <button id="start-btn" class="w-full py-3.5 bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-bold rounded-xl shadow-lg transition transform">
+                INICIAR PARTIDA
+            </button>
+        </div>
+    </main>
+
+    <!-- Controles Mobile & WhatsApp -->
+    <footer class="w-full max-w-md flex flex-col gap-2 shrink-0 pb-1">
+        <div class="grid grid-cols-2 gap-2">
+            <button id="left-btn" class="py-3 bg-zinc-900 border border-zinc-800 active:bg-zinc-800 text-zinc-200 font-bold rounded-xl text-base shadow">◀ ESQUERDA</button>
+            <button id="right-btn" class="py-3 bg-zinc-900 border border-zinc-800 active:bg-zinc-800 text-zinc-200 font-bold rounded-xl text-base shadow">DIREITA ▶</button>
+        </div>
+        <button id="share-btn" class="hidden w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition shadow">
+            📲 DESAFIAR NO WHATSAPP
+        </button>
+    </footer>
+
+    <!-- Script da Lógica do Jogo -->
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const highscoreEl = document.getElementById('highscore');
+        const menuOverlay = document.getElementById('menu-overlay');
+        const startBtn = document.getElementById('start-btn');
+        const shareBtn = document.getElementById('share-btn');
+        const overloadBadge = document.getElementById('overload-badge');
+
+        canvas.width = 400;
+        canvas.height = 600;
+
+        let score = 0;
+        let highscore = localStorage.getItem('chronos_highscore') || 0;
+        highscoreEl.innerText = highscore;
+        let isPlaying = false;
+        let gameInterval, spawnerInterval;
+
+        let playerLane = 1;
+        const lanes = [75, 200, 325];
+
+        let obstacles = [];
+        let gameSpeed = 4;
+        let isOverload = false;
+
+        let audioCtx = null;
+        function playSound(type) {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            if (type === 'move') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.05);
+            } else if (type === 'overload') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'hit') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(80, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(20, audioCtx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            }
+        }
+
+        document.getElementById('left-btn').addEventListener('click', () => movePlayer(-1));
+        document.getElementById('right-btn').addEventListener('click', () => movePlayer(1));
+        
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') movePlayer(-1);
+            if (e.key === 'ArrowRight') movePlayer(1);
+        });
+
+        function movePlayer(dir) {
+            if (!isPlaying) return;
+            playerLane += dir;
+            if (playerLane < 0) playerLane = 0;
+            if (playerLane > 2) playerLane = 2;
+            playSound('move');
+        }
+
+        startBtn.addEventListener('click', startGame);
+
+        function startGame() {
+            score = 0;
+            scoreEl.innerText = score;
+            playerLane = 1;
+            obstacles = [];
+            gameSpeed = 4;
+            isOverload = false;
+            overloadBadge.classList.add('hidden');
+            menuOverlay.classList.add('hidden');
+            shareBtn.classList.add('hidden');
+            isPlaying = true;
+
+            clearInterval(gameInterval);
+            clearInterval(spawnerInterval);
+
+            gameInterval = setInterval(updateGame, 1000 / 60);
+            spawnerInterval = setInterval(spawnObstacle, 1200);
+        }
+
+        function spawnObstacle() {
+            if (!isPlaying) return;
+            const lane = Math.floor(Math.random() * 3);
+            obstacles.push({ lane: lane, y: -50, width: 90, height: 40 });
+
+            if (score > 0 && score % 10 === 0 && !isOverload) {
+                triggerOverload();
+            }
+        }
+
+        function triggerOverload() {
+            isOverload = true;
+            gameSpeed = 7;
+            overloadBadge.classList.remove('hidden');
+            playSound('overload');
+            setTimeout(() => {
+                isOverload = false;
+                gameSpeed = 4;
+                overloadBadge.classList.add('hidden');
+            }, 4000);
+        }
+
+        function updateGame() {
+            ctx.fillStyle = '#09090b';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = '#27272a';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(133, 0); ctx.lineTo(133, canvas.height);
+            ctx.moveTo(266, 0); ctx.lineTo(266, canvas.height);
+            ctx.stroke();
+
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                obs.y += gameSpeed;
+
+                ctx.fillStyle = isOverload ? '#ef4444' : '#a855f7';
+                ctx.fillRect(lanes[obs.lane] - 45, obs.y, obs.width, obs.height);
+
+                if (obs.y > 450 && obs.y < 530 && obs.lane === playerLane) {
+                    gameOver();
+                }
+
+                if (obs.y > canvas.height) {
+                    obstacles.splice(i, 1);
+                    score++;
+                    scoreEl.innerText = score;
+                }
+            }
+
+            ctx.fillStyle = '#f4f4f5';
+            ctx.fillRect(lanes[playerLane] - 30, 480, 60, 60);
+        }
+
+        function gameOver() {
+            isPlaying = false;
+            clearInterval(gameInterval);
+            clearInterval(spawnerInterval);
+            playSound('hit');
+
+            if (score > highscore) {
+                highscore = score;
+                localStorage.setItem('chronos_highscore', highscore);
+                highscoreEl.innerText = highscore;
+            }
+
+            menuOverlay.classList.remove('hidden');
+            startBtn.innerText = "JOGAR NOVAMENTE";
+            shareBtn.classList.remove('hidden');
+        }
+
+        shareBtn.addEventListener('click', () => {
+            const text = encodeURIComponent(`Consegui fazer ${score} pontos no Chronos Grid! Consegue me superar? 🎮🔥`);
+            window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+        });
+    </script>
+</body>
+</html>
