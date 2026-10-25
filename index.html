@@ -12,49 +12,50 @@
 <body class="flex flex-col items-center justify-between h-dvh w-screen select-none p-3 box-border">
 
     <!-- Topo: Fase, Pontos e Recorde -->
-    <header class="w-full max-w-md flex justify-between items-center bg-zinc-900/80 border border-zinc-800 p-2.5 rounded-xl backdrop-blur-md shrink-0">
+    <header class="w-full max-w-md flex justify-between items-center bg-zinc-900/90 border border-zinc-800 p-2.5 rounded-xl backdrop-blur-md shrink-0 shadow-lg">
         <div>
-            <p class="text-[10px] text-zinc-400">FASE</p>
-            <h1 id="level-display" class="text-xl font-bold text-amber-400">1/100</h1>
+            <p class="text-[10px] text-zinc-400 font-bold">FASE</p>
+            <h1 id="level-display" class="text-xl font-black text-amber-400 tracking-wider">1/100</h1>
         </div>
-        <div id="overload-badge" class="hidden px-2 py-0.5 bg-red-950/80 border border-red-600 rounded-lg text-red-400 text-[10px] font-bold animate-pulse">
-            🔥 SOBRECARGA
+        <div class="text-center">
+            <p class="text-[10px] text-zinc-400 font-bold">PONTOS</p>
+            <h2 id="score-display" class="text-xl font-bold text-purple-400">0</h2>
         </div>
         <div class="text-right">
-            <p class="text-[10px] text-zinc-400">RECORD</p>
+            <p class="text-[10px] text-zinc-400 font-bold">RECORD</p>
             <h2 id="highscore" class="text-xl font-bold text-zinc-200">0</h2>
         </div>
     </header>
 
-    <!-- Área do Jogo (Canvas) -->
+    <!-- Área do Jogo (Canvas Customizado) -->
     <main class="relative flex items-center justify-center w-full max-w-md flex-1 my-2 min-h-0">
-        <canvas id="gameCanvas" class="bg-zinc-950 border-2 border-zinc-800 rounded-2xl w-full h-full max-h-[420px] shadow-2xl object-contain"></canvas>
+        <canvas id="gameCanvas" class="bg-zinc-950 border-2 border-purple-900/40 rounded-2xl w-full h-full max-h-[420px] shadow-[0_0_25px_rgba(168,85,247,0.15)] object-contain"></canvas>
         
         <!-- Tela de Menu / Início -->
-        <div id="menu-overlay" class="absolute inset-0 bg-zinc-950/95 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center rounded-2xl">
-            <h2 class="text-2xl font-black text-purple-400 mb-1 tracking-wider">CHRONOS GRID</h2>
+        <div id="menu-overlay" class="absolute inset-0 bg-zinc-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center rounded-2xl">
+            <h2 class="text-3xl font-black text-purple-400 mb-1 tracking-wider drop-shadow-[0_0_10px_rgba(168,85,247,0.5)]">CHRONOS GRID</h2>
             <p id="menu-desc" class="text-xs text-zinc-400 mb-6">Domine as 100 fases do tempo.</p>
             
-            <button id="start-btn" class="w-full py-3.5 bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-bold rounded-xl shadow-lg transition transform mb-3">
+            <button id="start-btn" class="w-full py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-95 text-white font-bold rounded-xl shadow-lg transition transform mb-3">
                 INICIAR PARTIDA
             </button>
         </div>
 
         <!-- Tela de Paywall / Monetização Mercado Pago (Fase 11+) -->
         <div id="paywall-overlay" class="hidden absolute inset-0 bg-zinc-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center rounded-2xl border border-amber-500/30">
-            <span class="text-3xl mb-2">💎</span>
+            <span class="text-3xl mb-2 animate-bounce">💎</span>
             <h3 class="text-xl font-black text-amber-400 mb-1">DESBLOQUEIE AS 100 FASES</h3>
             <p class="text-xs text-zinc-300 mb-4">Chegou à Fase 11! Adquira o Passe VIP Vitalício para desbloquear todas as 100 fases e recursos exclusivos.</p>
             
             <div class="bg-zinc-900 border border-zinc-800 p-3 rounded-xl w-full mb-4 text-left">
-                <p class="text-[11px] text-zinc-400 mb-1">Passe VIP (Acesso Total 100 Fases)</p>
-                <p class="text-[10px] text-zinc-500">Pagamento seguro via Mercado Pago (Pix, Cartão ou Boleto).</p>
+                <p class="text-[11px] text-zinc-300 font-bold mb-1">Passe VIP (Acesso Total 100 Fases)</p>
+                <p class="text-[10px] text-zinc-400">Pagamento seguro via Mercado Pago (Pix, Cartão ou Boleto).</p>
             </div>
 
             <a id="mp-pay-btn" href="https://mpago.la/22WKaV4" target="_blank" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold rounded-xl shadow-lg transition transform mb-2 block text-center">
                 💳 DESBLOQUEAR AGORA NO MERCADO PAGO
             </a>
-            <button id="back-menu-btn" class="w-full py-2 bg-zinc-800 text-zinc-400 font-bold rounded-xl text-xs">
+            <button id="back-menu-btn" class="w-full py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-400 font-bold rounded-xl text-xs">
                 Voltar ao Menu
             </button>
         </div>
@@ -63,26 +64,26 @@
     <!-- Controles -->
     <footer class="w-full max-w-md flex flex-col gap-2 shrink-0 pb-1">
         <div class="grid grid-cols-2 gap-2">
-            <button id="left-btn" class="py-3 bg-zinc-900 border border-zinc-800 active:bg-zinc-800 text-zinc-200 font-bold rounded-xl text-base shadow">◀ ESQUERDA</button>
-            <button id="right-btn" class="py-3 bg-zinc-900 border border-zinc-800 active:bg-zinc-800 text-zinc-200 font-bold rounded-xl text-base shadow">DIREITA ▶</button>
+            <button id="left-btn" class="py-3 bg-zinc-900/90 border border-zinc-800 active:bg-purple-950/40 active:border-purple-600 text-zinc-200 font-bold rounded-xl text-base shadow transition">◀ ESQUERDA</button>
+            <button id="right-btn" class="py-3 bg-zinc-900/90 border border-zinc-800 active:bg-purple-950/40 active:border-purple-600 text-zinc-200 font-bold rounded-xl text-base shadow transition">DIREITA ▶</button>
         </div>
-        <button id="share-btn" class="hidden w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition shadow">
+        <button id="share-btn" class="hidden w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold rounded-xl text-xs transition shadow">
             📲 DESAFIAR NO WHATSAPP
         </button>
     </footer>
 
-    <!-- Lógica do Jogo com Progressão e Paywall Mercado Pago -->
+    <!-- Lógica de Renderização Avançada & Game Loop -->
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const levelDisplay = document.getElementById('level-display');
+        const scoreDisplay = document.getElementById('score-display');
         const highscoreEl = document.getElementById('highscore');
         const menuOverlay = document.getElementById('menu-overlay');
         const paywallOverlay = document.getElementById('paywall-overlay');
         const startBtn = document.getElementById('start-btn');
         const shareBtn = document.getElementById('share-btn');
         const backMenuBtn = document.getElementById('back-menu-btn');
-        const overloadBadge = document.getElementById('overload-badge');
 
         canvas.width = 400;
         canvas.height = 600;
@@ -98,7 +99,18 @@
         let playerLane = 1;
         const lanes = [75, 200, 325];
         let obstacles = [];
+        let stars = [];
         let gameSpeed = 4;
+
+        // Inicializa estrelas no fundo para efeito de velocidade
+        for (let i = 0; i < 25; i++) {
+            stars.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                speed: 1 + Math.random() * 3,
+                size: 1 + Math.random() * 2
+            });
+        }
 
         let audioCtx = null;
         function playSound(type) {
@@ -110,17 +122,17 @@
                 gain.connect(audioCtx.destination);
                 if (type === 'move') {
                     osc.type = 'square';
-                    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-                    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+                    osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
                     osc.start(); osc.stop(audioCtx.currentTime + 0.05);
                 } else if (type === 'hit') {
                     osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(80, audioCtx.currentTime);
-                    osc.frequency.linearRampToValueAtTime(20, audioCtx.currentTime + 0.3);
+                    osc.frequency.setValueAtTime(90, audioCtx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(20, audioCtx.currentTime + 0.25);
                     gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
-                    osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+                    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.25);
                 }
             } catch (e) {}
         }
@@ -142,7 +154,6 @@
         }
 
         startBtn.addEventListener('click', () => {
-            // Trava na fase 11 para utilizadores não-VIP
             if (!isVip && currentLevel > 10) {
                 menuOverlay.classList.add('hidden');
                 paywallOverlay.classList.remove('hidden');
@@ -161,54 +172,117 @@
             paywallOverlay.classList.add('hidden');
             shareBtn.classList.add('hidden');
             obstacles = [];
-            gameSpeed = 4 + (currentLevel * 0.1);
+            score = 0;
+            currentLevel = 1;
+            scoreDisplay.innerText = score;
+            levelDisplay.innerText = currentLevel + "/100";
+            gameSpeed = 4;
             isPlaying = true;
 
             clearInterval(gameInterval);
             clearInterval(spawnerInterval);
 
             gameInterval = setInterval(updateGame, 1000 / 60);
-            spawnerInterval = setInterval(spawnObstacle, Math.max(400, 1200 - (currentLevel * 8)));
+            spawnerInterval = setInterval(spawnObstacle, 1100);
         }
 
         function spawnObstacle() {
             if (!isPlaying) return;
             const lane = Math.floor(Math.random() * 3);
-            obstacles.push({ lane: lane, y: -50, width: 90, height: 40 });
+            obstacles.push({ lane: lane, y: -60, width: 85, height: 35 });
         }
 
         function updateGame() {
+            // Fundo escuro minimalista
             ctx.fillStyle = '#09090b';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            ctx.strokeStyle = '#27272a';
+            // Desenha e move estrelas/partículas de fundo
+            ctx.fillStyle = 'rgba(168, 85, 247, 0.25)';
+            stars.forEach(star => {
+                star.y += star.speed + (gameSpeed * 0.3);
+                if (star.y > canvas.height) { star.y = 0; star.x = Math.random() * canvas.width; }
+                ctx.fillRect(star.x, star.y, star.size, star.size * 2);
+            });
+
+            // Linhas verticais neons do Grid
+            ctx.strokeStyle = 'rgba(39, 39, 42, 0.8)';
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(133, 0); ctx.lineTo(133, canvas.height);
             ctx.moveTo(266, 0); ctx.lineTo(266, canvas.height);
             ctx.stroke();
 
+            // Atualiza e desenha Obstáculos com Gradiente e Glow
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 let obs = obstacles[i];
                 obs.y += gameSpeed;
 
-                ctx.fillStyle = currentLevel > 50 ? '#ef4444' : '#a855f7';
-                ctx.fillRect(lanes[obs.lane] - 45, obs.y, obs.width, obs.height);
+                const mainColor = currentLevel > 50 ? '#ef4444' : (currentLevel > 25 ? '#f59e0b' : '#a855f7');
+                const darkColor = currentLevel > 50 ? '#7f1d1d' : (currentLevel > 25 ? '#78350f' : '#581c87');
 
+                let grad = ctx.createLinearGradient(0, obs.y, 0, obs.y + obs.height);
+                grad.addColorStop(0, mainColor);
+                grad.addColorStop(1, darkColor);
+
+                // Desenha bloco estilizado com bordas arredondadas e brilho
+                ctx.fillStyle = grad;
+                ctx.shadowColor = mainColor;
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.roundRect(lanes[obs.lane] - 42.5, obs.y, obs.width, obs.height, 8);
+                ctx.fill();
+                ctx.shadowBlur = 0; // reseta shadow
+
+                // Borda brilhante interna
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // Colisão
                 if (obs.y > 450 && obs.y < 530 && obs.lane === playerLane) {
                     gameOver();
                 }
 
+                // Incrementa pontos e fases ao ultrapassar
                 if (obs.y > canvas.height) {
                     obstacles.splice(i, 1);
                     score++;
-                    currentLevel = Math.min(100, Math.floor(score / 5) + 1);
+                    scoreDisplay.innerText = score;
+                    currentLevel = Math.min(100, Math.floor(score / 4) + 1);
                     levelDisplay.innerText = currentLevel + "/100";
+                    gameSpeed = 4 + (currentLevel * 0.08);
                 }
             }
 
-            ctx.fillStyle = '#f4f4f5';
-            ctx.fillRect(lanes[playerLane] - 30, 480, 60, 60);
+            // Desenha Jogador Stylizado (Nave Cyberpunk)
+            const px = lanes[playerLane];
+            const py = 480;
+
+            // Rastro do jogador
+            ctx.fillStyle = 'rgba(168, 85, 247, 0.3)';
+            ctx.beginPath();
+            ctx.roundRect(px - 20, py + 30, 40, 20, 4);
+            ctx.fill();
+
+            // Corpo do Jogador
+            let playerGrad = ctx.createLinearGradient(0, py, 0, py + 50);
+            playerGrad.addColorStop(0, '#ffffff');
+            playerGrad.addColorStop(1, '#a855f7');
+
+            ctx.fillStyle = playerGrad;
+            ctx.shadowColor = '#c084fc';
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.roundRect(px - 25, py, 50, 50, 10);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Núcleo do Jogador
+            ctx.fillStyle = '#09090b';
+            ctx.beginPath();
+            ctx.arc(px, py + 25, 8, 0, Math.PI * 2);
+            ctx.fill();
         }
 
         function gameOver() {
@@ -224,7 +298,7 @@
             }
 
             menuOverlay.classList.remove('hidden');
-            startBtn.innerText = (!isVip && currentLevel > 10) ? "DESBLOQUEAR VIP (Fase " + currentLevel + ")" : "JOGAR NOVAMENTE (Fase " + currentLevel + ")";
+            startBtn.innerText = (!isVip && currentLevel > 10) ? "DESBLOQUEAR VIP (Fase " + currentLevel + ")" : "JOGAR NOVAMENTE";
             shareBtn.classList.remove('hidden');
         }
 
